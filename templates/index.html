@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-grid">
+    
+    <aside class="sidebar">
+        <form action="{{ url_for('index') }}" method="GET" class="search-form" onsubmit="showLoader()">
+            <input type="text" name="city" placeholder="Search city..." required>
+            <button type="submit">🔍 Search</button>
+        </form>
+        
+        <button id="geo-btn" class="btn-geo">📍 Use Current Location</button>
+        
+        <hr>
+        
+        <h3>⭐ Favorites</h3>
+        <ul class="list-group">
+            {% for fav in favorites %}
+                <li><a href="{{ url_for('index', city=fav.city_name) }}">{{ fav.city_name }}</a></li>
+            {% else %}
+                <p class="text-muted">No favorites saved.</p>
+            {% endfor %}
+        </ul>
+
+        <hr>
+
+        <div class="history-header">
+            <h3>🕒 History</h3>
+            {% if history %}
+            <form action="{{ url_for('clear_history') }}" method="POST">
+                <button type="submit" class="btn-link">Clear</button>
+            </form>
+            {% endif %}
+        </div>
+        <ul class="list-group">
+            {% for item in history %}
+                <li><a href="{{ url_for('index', city=item.city_name) }}">{{ item.city_name }}</a></li>
+            {% else %}
+                <p class="text-muted">No recent searches.</p>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    <main class="main-weather">
+        {% if weather %}
+            <div class="weather-card main-card">
+                <div class="card-header">
+                    <h2>{{ weather.current.name }}, {{ weather.current.sys.country }}</h2>
+                    <button id="fav-toggle-btn" data-city="{{ weather.current.name }}" class="btn-fav">
+                        {{ '⭐ Favorited' if is_fav else '☆ Add Favorite' }}
+                    </button>
+                </div>
+                
+                <div class="main-stats">
+                    <img src="http://openweathermap.org/img/wn/{{ weather.current.weather[0].icon }}@2x.png" alt="Icon">
+                    <div>
+                        <div class="temp-display">{{ weather.current.main.temp | round }}°C</div>
+                        <p class="desc-display">{{ weather.current.weather[0].description | title }}</p>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-box">Feels Like: <strong>{{ weather.current.main.feels_like | round }}°C</strong></div>
+                    <div class="metric-box">Humidity: <strong>{{ weather.current.main.humidity }}%</strong></div>
+                    <div class="metric-box">Wind: <strong>{{ weather.current.wind.speed }} m/s</strong></div>
+                    <div class="metric-box">Pressure: <strong>{{ weather.current.main.pressure }} hPa</strong></div>
+                    <div class="metric-box">Visibility: <strong>{{ weather.current.visibility / 1000 }} km</strong></div>
+                    <div class="metric-box">AQI Index: <strong>{{ weather.aqi }} / 5</strong></div>
+                    <div class="metric-box">🌅 Sunrise: <strong>{{ weather.sunrise }}</strong></div>
+                    <div class="metric-box">🌇 Sunset: <strong>{{ weather.sunset }}</strong></div>
+                </div>
+            </div>
+
+            <h3 class="section-title">5-Day Weather Forecast</h3>
+            <div class="forecast-grid">
+                {% for day in weather.forecast %}
+                    <div class="weather-card forecast-card">
+                        <h4>{{ day.day_name }}</h4>
+                        <img src="http://openweathermap.org/img/wn/{{ day.weather[0].icon }}.png" alt="Icon">
+                        <div class="forecast-temp">{{ day.main.temp | round }}°C</div>
+                        <p>{{ day.weather[0].main }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>Welcome to SkyCast! Use the left sidebar to look up weather configurations by city name or GPS geolocation trackers.</p>
+            </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

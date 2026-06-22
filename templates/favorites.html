@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="section-title">Saved Favorite Cities</h2>
+<div class="forecast-grid">
+    {% for fav in favorites %}
+        <div class="weather-card forecast-card">
+            <h3>{{ fav.name }}</h3>
+            <img src="http://openweathermap.org/img/wn/{{ fav.icon }}@2x.png" alt="Icon">
+            <div class="temp-display" style="font-size: 1.5rem;">{{ fav.temp | round }}°C</div>
+            <p>{{ fav.desc | title }}</p>
+            <br>
+            <a href="{{ url_for('index', city=fav.name) }}" class="btn-geo" style="padding: 5px 10px; font-size: 0.85rem;">View Panel</a>
+        </div>
+    {% edit %}
+    {% else %}
+        <p>You have not favorited any cities yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyCast - Weather Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="logo"><a href="{{ url_for('index') }}">🌤️ SkyCast</a></div>
+            {% if session.username %}
+                <span class="user-greeting">| &nbsp;Hello, <strong>{{ session.username }}</strong> 👋</span>
+            {% endif %}
+        </div>
+        
+        <div class="nav-links">
+            {% if session.username %}
+                <a href="{{ url_for('index') }}">Dashboard</a>
+                <a href="{{ url_for('favorites_page') }}">Favorites</a>
+                <button id="theme-toggle" class="btn-toggle">☀️</button>
+                <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <div id="loader" class="loader hidden"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
