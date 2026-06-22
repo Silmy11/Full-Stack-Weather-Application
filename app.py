@@ -21,7 +21,7 @@ app.config['MYSQL_USER'] = 'YOUR_CLOUD_USERNAME'
 app.config['MYSQL_PASSWORD'] = 'YOUR_CLOUD_PASSWORD'
 app.config['MYSQL_DB'] = 'YOUR_CLOUD_DATABASE_NAME'
 app.config['MYSQL_PORT'] = 25061# (use numbers here, NO quotes, e.g. 12345)
-
+app.config['MYSQL_CUSTOM_OPTIONS'] = {"ssl": {"ssl-mode": "REQUIRED"}}
 mysql = MySQL(app)
 
 # Dynamically assigned OpenWeather token variable
