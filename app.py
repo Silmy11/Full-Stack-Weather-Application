@@ -17,13 +17,11 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_weather_key')
 # MySQL Configuration matching your target schemas
 # Force-connect directly to your cloud DB strings
 # MySQL Configuration matching your target schemas
-app.config['MYSQL_HOST'] = 'your-aiven-hostname.aivencloud.com' # <-- Replace with real Aiven Host
-app.config['MYSQL_USER'] = 'avnadmin'                           # <-- Replace with real Aiven User
-app.config['MYSQL_PASSWORD'] = 'your_aiven_password_here'       # <-- Replace with real Aiven Password
-app.config['MYSQL_DB'] = 'defaultdb'                            # <-- Replace with real Aiven DB Name
-app.config['MYSQL_PORT'] = 25061
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'                  # Helps Flask read table columns safely
-app.config['MYSQL_CUSTOM_OPTIONS'] = {"ssl": {"ssl-mode": "REQUIRED"}}
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
+app.config['MYSQL_DB'] = 'weather_db'
+app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
 mysql = MySQL(app)
 
