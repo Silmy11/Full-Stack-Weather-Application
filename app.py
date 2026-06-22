@@ -15,12 +15,12 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_weather_key')
 
 # MySQL Configuration matching your target schemas
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', 'Mysql@11')
-app.config['MYSQL_DB'] = 'weather_db'
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
-app.config['MYSQL_PORT'] = int(os.environ.get('MYSQL_PORT', 25061))
+# Force-connect directly to your cloud DB strings
+app.config['MYSQL_HOST'] = 'YOUR_CLOUD_HOST_URL' 
+app.config['MYSQL_USER'] = 'YOUR_CLOUD_USERNAME'
+app.config['MYSQL_PASSWORD'] = 'YOUR_CLOUD_PASSWORD'
+app.config['MYSQL_DB'] = 'YOUR_CLOUD_DATABASE_NAME'
+app.config['MYSQL_PORT'] = YOUR_CLOUD_PORT_NUMBER # (use numbers here, NO quotes, e.g. 12345)
 
 mysql = MySQL(app)
 
