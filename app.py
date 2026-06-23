@@ -1,8 +1,8 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import pymysql
-# pymysql.install_as_MySQLdb()
-# from flask_mysqldb import MySQL
+pymysql.install_as_MySQLdb()
+from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 from datetime import datetime
@@ -18,18 +18,10 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_weather_key')
 
 # MySQL Configuration matching your target schemas
 # Force-connect directly to your cloud DB strings
-# MySQL Configuration matching your target schemas
-def get_db_connection():
-    return pymysql.connect(
-       host = os.getenv('DB_HOST')
-       user = os.getenv('DB_USER')
-       password = os.getenv('DB_PASSWORD')
-       database= os.getenv('DB_NAME')
-       port = int(os.getenv('DB_PORT')or 3306)),
-       cursorclass=pymysql.cursors.DictCursor,
-       autocommit=False,
-    )
-
+app.config['MYSQL_HOST'] = os.getenv('DB_HOST')
+app.config['MYSQL_USER'] = os.getenv('DB_USER')
+app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
+app.config['MYSQL_DB'] = os.getenv('DB_NAME')
 
 mysql = MySQL(app)
 
