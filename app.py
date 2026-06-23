@@ -16,14 +16,21 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_weather_key')
 
 # Pure PyMySQL connection — no C library needed
 def get_db_connection():
-    return pymysql.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME'),
-        port=int(os.getenv('DB_PORT') or 3306),
-        cursorclass=pymysql.cursors.DictCursor,
-    )
+    print(f"[DEBUG] DB_HOST={os.getenv('DB_HOST')} DB_PORT={os.getenv('DB_PORT')} DB_USER={os.getenv('DB_USER')} DB_NAME={os.getenv('DB_NAME')}")
+    try:
+        conn = pymysql.connect(
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME'),
+            port=int(os.getenv('DB_PORT') or 3306),
+            cursorclass=pymysql.cursors.DictCursor,
+        )
+        print("[DEBUG] DB connection successful")
+        return conn
+    except Exception as e:
+        print(f"[DEBUG] DB connection FAILED: {type(e).__name__}: {e}")
+        raise
 
 # Dynamically assigned OpenWeather token variable
 API_KEY = os.getenv('OPENWEATHER_API_KEY', 'YOUR_OPENWEATHERMAP_API_KEY')
@@ -107,21 +114,38 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        print(f"[DEBUG] /login POST received for email={email}")
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE email = %s", [email])
-        user = cur.fetchone()
-        cur.close()
-        conn.close()
+        try:
+            conn = get_db_connection()
+        except Exception as e:
+            print(f"[DEBUG] /login — get_db_connection FAILED: {type(e).__name__}: {e}")
+            flash('Database connection error.', 'danger')
+            return render_template('login.html')
 
-        if user and check_password_hash(user['password_hash'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            flash(f"Welcome back, {user['username']}!", 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid credentials. Please try again.', 'danger')
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE email = %s", [email])
+            user = cur.fetchone()
+            print(f"[DEBUG] /login — query done, user found: {user is not None}")
+            cur.close()
+            conn.close()
+        except Exception as e:
+            print(f"[DEBUG] /login — query FAILED: {type(e).__name__}: {e}")
+            flash('Database query error.', 'danger')
+            return render_template('login.html')
+
+        try:
+            if user and check_password_hash(user['password_hash'], password):
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                flash(f"Welcome back, {user['username']}!", 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Invalid credentials. Please try again.', 'danger')
+        except Exception as e:
+            print(f"[DEBUG] /login — password check FAILED: {type(e).__name__}: {e}")
+            flash('Authentication error.', 'danger')
 
     return render_template('login.html')
 
