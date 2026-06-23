@@ -1,8 +1,6 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import pymysql
-pymysql.install_as_MySQLdb()
-from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 from datetime import datetime
@@ -16,14 +14,17 @@ app = Flask(__name__)
 # Dynamically pull secret key setup configuration securely from memory state
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_weather_key')
 
-# MySQL Configuration matching your target schemas
-# Force-connect directly to your cloud DB strings
-app.config['MYSQL_HOST'] = os.getenv('DB_HOST')
-app.config['MYSQL_USER'] = os.getenv('DB_USER')
-app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
-app.config['MYSQL_DB'] = os.getenv('DB_NAME')
-
-mysql = MySQL(app)
+# Pure PyMySQL connection — no C library needed
+def get_db_connection():
+    return pymysql.connect(
+        host=os.getenv('DB_HOST'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        database=os.getenv('DB_NAME'),
+        port=int(os.getenv('DB_PORT', 3306)),
+        ssl={'ssl': {}},
+        cursorclass=pymysql.cursors.DictCursor,
+    )
 
 # Dynamically assigned OpenWeather token variable
 API_KEY = os.getenv('OPENWEATHER_API_KEY', 'YOUR_OPENWEATHERMAP_API_KEY')
@@ -88,16 +89,18 @@ def register():
         password = request.form['password']
         hashed_pw = generate_password_hash(password)
 
-        cur = mysql.connection.cursor()
+        conn = get_db_connection()
+        cur = conn.cursor()
         try:
             cur.execute("INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)", (username, email, hashed_pw))
-            mysql.connection.commit()
+            conn.commit()
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
         except Exception:
             flash('Username or Email already exists.', 'danger')
         finally:
             cur.close()
+            conn.close()
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -105,11 +108,13 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
-        cur = mysql.connection.cursor()
+
+        conn = get_db_connection()
+        cur = conn.cursor()
         cur.execute("SELECT * FROM users WHERE email = %s", [email])
         user = cur.fetchone()
         cur.close()
+        conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
@@ -118,7 +123,7 @@ def login():
             return redirect(url_for('index'))
         else:
             flash('Invalid credentials. Please try again.', 'danger')
-            
+
     return render_template('login.html')
 
 @app.route('/logout')
@@ -138,14 +143,15 @@ def index():
     lat = request.args.get('lat')
     lon = request.args.get('lon')
 
-    cur = mysql.connection.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
 
     if city:
         weather_data = get_weather_data(city=city)
         if weather_data:
             # Save Search History
             cur.execute("INSERT INTO search_history (user_id, city_name) VALUES (%s, %s)", (session['user_id'], city))
-            mysql.connection.commit()
+            conn.commit()
         else:
             flash('City not found!', 'danger')
     elif lat and lon:
@@ -160,6 +166,7 @@ def index():
     cur.execute("SELECT city_name FROM favorites WHERE user_id = %s", [session['user_id']])
     favorites = cur.fetchall()
     cur.close()
+    conn.close()
 
     # Check if currently viewed city is inside user favorites
     is_fav = False
@@ -172,10 +179,11 @@ def index():
 @app.route('/favorite/toggle', methods=['POST'])
 def toggle_favorite():
     if 'user_id' not in session: return jsonify({'status': 'unauthorized'}), 401
-    
+
     city = request.form.get('city')
-    cur = mysql.connection.cursor()
-    
+    conn = get_db_connection()
+    cur = conn.cursor()
+
     cur.execute("SELECT id FROM favorites WHERE user_id = %s AND city_name = %s", (session['user_id'], city))
     fav = cur.fetchone()
 
@@ -186,18 +194,21 @@ def toggle_favorite():
         cur.execute("INSERT INTO favorites (user_id, city_name) VALUES (%s, %s)", (session['user_id'], city))
         action = 'added'
 
-    mysql.connection.commit()
+    conn.commit()
     cur.close()
+    conn.close()
     return jsonify({'status': 'success', 'action': action})
 
 @app.route('/favorites')
 def favorites_page():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
-    cur = mysql.connection.cursor()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute("SELECT city_name FROM favorites WHERE user_id = %s", [session['user_id']])
     fav_cities = cur.fetchall()
     cur.close()
+    conn.close()
 
     fav_data = []
     for fav in fav_cities:
@@ -214,19 +225,23 @@ def favorites_page():
 @app.route('/history/clear', methods=['POST'])
 def clear_history():
     if 'user_id' not in session: return redirect(url_for('login'))
-    cur = mysql.connection.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute("DELETE FROM search_history WHERE user_id = %s", [session['user_id']])
-    mysql.connection.commit()
+    conn.commit()
     cur.close()
+    conn.close()
     flash('Search history cleared.', 'info')
     return redirect(url_for('index'))
 
 @app.route('/testdb')
 def test_db():
     try:
-        cur = mysql.connection.cursor()
+        conn = get_db_connection()
+        cur = conn.cursor()
         cur.execute("SELECT 1")
         cur.close()
+        conn.close()
         return "🎉 Database connected successfully!"
     except Exception as e:
         return f"❌ Database connection failed! Error: {str(e)}"
@@ -234,13 +249,14 @@ def test_db():
 # --- SERVER STARTUP CONTROLS ---
 if __name__ == '__main__':
     # Automatically verify localized database state on local startup console log
-    with app.app_context():
-        try:
-            test_cursor = mysql.connection.cursor()
-            test_cursor.execute("SELECT 1")
-            test_cursor.close()
-            print("\n>>> 👍 BACKEND LOGLINK: DATABASE RUNNING SUCCESSFULLY! <<<\n")
-        except Exception as db_err:
-            print(f"\n>>> 🛑 BACKEND LOGLINK: ERROR STARTING UP SQL SUITE: {db_err} <<<\n")
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.close()
+        conn.close()
+        print("\n>>> 👍 BACKEND LOGLINK: DATABASE RUNNING SUCCESSFULLY! <<<\n")
+    except Exception as db_err:
+        print(f"\n>>> 🛑 BACKEND LOGLINK: ERROR STARTING UP SQL SUITE: {db_err} <<<\n")
 
     app.run(debug=True)
