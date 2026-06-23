@@ -4,4 +4,11 @@ PyMySQL==1.1.1
 
 requests==2.33.1
 python-dotenv==1.2.2
-gunicorn
+
+
+
+
+
+Flask-MySQLdb==2.0.0
+
+gunicorn==21.2.0
