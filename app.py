@@ -94,15 +94,25 @@ def register():
         email = request.form['email']
         password = request.form['password']
         hashed_pw = generate_password_hash(password)
+        print(f"[DEBUG] /register POST received for username={username} email={email}")
 
-        conn = get_db_connection()
-        cur = conn.cursor()
         try:
+            conn = get_db_connection()
+        except Exception as e:
+            print(f"[DEBUG] /register — get_db_connection FAILED: {type(e).__name__}: {e}")
+            flash('Database connection error.', 'danger')
+            return render_template('register.html')
+
+        try:
+            cur = conn.cursor()
+            print("[DEBUG] /register — attempting INSERT into users table")
             cur.execute("INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)", (username, email, hashed_pw))
             conn.commit()
+            print("[DEBUG] /register — INSERT successful")
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
-        except Exception:
+        except Exception as e:
+            print(f"[DEBUG] /register — INSERT FAILED: {type(e).__name__}: {e}")
             flash('Username or Email already exists.', 'danger')
         finally:
             cur.close()
