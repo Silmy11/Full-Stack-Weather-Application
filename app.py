@@ -19,11 +19,16 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_weather_key')
 # MySQL Configuration matching your target schemas
 # Force-connect directly to your cloud DB strings
 # MySQL Configuration matching your target schemas
-app.config['MYSQL_HOST'] = os.getenv('DB_HOST')
-app.config['MYSQL_USER'] = os.getenv('DB_USER')
-app.config['MYSQL_PASSWORD'] = os.getenv('DB_PASSWORD')
-app.config['MYSQL_DB'] = os.getenv('DB_NAME')
-app.config['MYSQL_PORT'] = int(os.getenv('DB_PORT'))
+def get_db_connection():
+    return pymysql.connect(
+       host = os.getenv('DB_HOST')
+       user = os.getenv('DB_USER')
+       password = os.getenv('DB_PASSWORD')
+       database= os.getenv('DB_NAME')
+       port = int(os.getenv('DB_PORT')or 3306)),
+       cursorclass=pymysql.cursors.DictCursor,
+       autocommit=False,
+    )
 
 
 mysql = MySQL(app)
