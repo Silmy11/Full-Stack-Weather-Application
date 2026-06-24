@@ -11,7 +11,7 @@
             <br>
             <a href="{{ url_for('index', city=fav.name) }}" class="btn-geo" style="padding: 5px 10px; font-size: 0.85rem;">View Panel</a>
         </div>
-    {% edit %}
+    
     {% else %}
         <p>You have not favorited any cities yet.</p>
     {% endfor %}
